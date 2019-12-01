@@ -1,5 +1,5 @@
-// Package eyes takes a set of servers and server sources and searches them against a set of rules
-package eyes
+// Package serverpatdown takes a set of servers and server sources and searches them against a set of rules
+package serverpatdown
 
 import (
 	"context"
