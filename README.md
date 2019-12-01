@@ -1,6 +1,7 @@
 # Serverpatdown
 
 This package takes a set of servers (or server sources) and searches the data on the servers against a set of rules.
+Note that unless you call `SetServerDataLimit` this will read **all data** on each server.
 
 This package basically combines `genericenricher` with `multiregex`
 
@@ -19,6 +20,9 @@ if err != nil {
     return
 }
 searcher.AddServer(server)
+
+// Set data limit
+searcher.SetServerDataLimit(1024 * 1024) // 1MB
 
 // Get matches
 matchedServers, err := searcher.Process(context.Background())

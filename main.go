@@ -18,9 +18,10 @@ type ServerReader interface {
 
 // Searcher struct that stores server readers and search rules
 type Searcher struct {
-	serverReaders []ServerReader
-	servers       []genericenricher.Server
-	rules         multiregex.RuleSet
+	serverReaders   []ServerReader
+	servers         []genericenricher.Server
+	rules           multiregex.RuleSet
+	serverDataLimit int64 // Limit of data to search
 }
 
 // AddServerReader Add source of servers
@@ -31,6 +32,11 @@ func (searcher *Searcher) AddServerReader(serverReader ServerReader) {
 // AddServer Add a single server
 func (searcher *Searcher) AddServer(server genericenricher.Server) {
 	searcher.servers = append(searcher.servers, server)
+}
+
+// SetServerDataLimit Searcher will read all data on server unless this limit is set
+func (searcher *Searcher) SetServerDataLimit(limit int64) {
+	searcher.serverDataLimit = limit
 }
 
 // AddSearchRule Add search rule
@@ -63,7 +69,14 @@ func (searcher *Searcher) Process(ctx context.Context) (matchedServers []generic
 }
 
 func (searcher *Searcher) searchServer(ctx context.Context, server genericenricher.Server) bool {
-	matched := searcher.rules.MatchesRulesReader(ctx, ioutil.NopCloser(io.LimitReader(server, 100)))
+	// Scan server data (with limit if there is one)
+	var matched bool
+	if searcher.serverDataLimit == 0 {
+		matched = searcher.rules.MatchesRulesReader(ctx, ioutil.NopCloser(server))
+	} else {
+		matched = searcher.rules.MatchesRulesReader(ctx, ioutil.NopCloser(io.LimitReader(server, searcher.serverDataLimit)))
+	}
+
 	server.Close()
 	if matched {
 		return true
