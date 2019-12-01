@@ -13,14 +13,14 @@ func Example() {
 	searcher := &Searcher{}
 	searcher.AddSearchRule(multiregex.MatchAll[0])
 
-	// Add a single server
+	// Add a single server to scan
 	server, err := genericenricher.GetServer("http://google.com")
 	if err != nil {
 		return
 	}
 	searcher.AddServer(server)
 
-	// Get maches
+	// Get matches
 	matchedServers, err := searcher.Process(context.Background())
 	if err != nil {
 		return
