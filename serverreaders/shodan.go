@@ -24,7 +24,7 @@ type ShodanReader struct {
 	serverType       enrichers.ServerType
 }
 
-// NewShodan Create new shodan reader based on query
+// NewShodan Create new shodan reader based on a shodan query
 func NewShodan(query string, token string, timeout time.Duration) (*ShodanReader, error) {
 	s := &ShodanReader{}
 
