@@ -63,10 +63,9 @@ func (searcher *Searcher) Process(ctx context.Context) (matchedServers []generic
 }
 
 func (searcher *Searcher) searchServer(ctx context.Context, server genericenricher.Server) bool {
-	// TODO: Change to MatchesRulesReader so it can break early
-	matchedRules := searcher.rules.GetMatchedRulesReader(ctx, ioutil.NopCloser(io.LimitReader(server, 100)))
+	matched := searcher.rules.MatchesRulesReader(ctx, ioutil.NopCloser(io.LimitReader(server, 100)))
 	server.Close()
-	if len(matchedRules) > 0 {
+	if matched {
 		return true
 	}
 	return false
