@@ -26,7 +26,7 @@ func Example_withServerReader() {
 	// Add this reader
 	searcher.AddServerReader(shodanReader)
 
-	// Get maches
+	// Get matches
 	matchedServers, err := searcher.Process(context.Background())
 	if err != nil {
 		return
