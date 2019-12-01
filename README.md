@@ -1,6 +1,6 @@
 # Serverpatdown
 
-This package takes a set of servers (or server sources) and searches the data on the servers against a set of rules.
+This package takes a set of servers (or server sources) and searches the _data_ on the servers against a set of regex rules.
 Note that unless you call `SetServerDataLimit` this will read **all data** on each server.
 
 This package basically combines `genericenricher` with `multiregex`
