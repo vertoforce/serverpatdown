@@ -1,4 +1,4 @@
-module serverpatdown
+module github.com/vertoforce/serverpatdown
 
 go 1.12
 
