@@ -8,7 +8,7 @@ import (
 	"github.com/vertoforce/multiregex"
 )
 
-func ExampleSearcher_Process() {
+func Example() {
 	// Create a searcher object
 	searcher := &Searcher{}
 	searcher.AddSearchRule(multiregex.MatchAll[0])

@@ -11,7 +11,7 @@ import (
 	"github.com/vertoforce/multiregex"
 )
 
-func ExampleSearcher_Process_withServerReader() {
+func Example_withServerReader() {
 	// Create a searcher object
 	searcher := &Searcher{}
 	searcher.AddSearchRule(multiregex.MatchAll[0])
