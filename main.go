@@ -13,7 +13,7 @@ import (
 
 // ServerReader source of servers
 type ServerReader interface {
-	GetServer() (genericenricher.Server, error)
+	ReadServer() (genericenricher.Server, error)
 }
 
 // Searcher struct that stores server readers and search rules
@@ -52,7 +52,7 @@ func (searcher *Searcher) Process(ctx context.Context) (matchedServers []generic
 	// Go through each server reader
 	for _, serverReader := range searcher.serverReaders {
 		// Read until eof or error
-		for server, err := serverReader.GetServer(); err != io.EOF && err != nil; {
+		for server, err := serverReader.ReadServer(); err != io.EOF && err != nil; {
 			if searcher.searchServer(ctx, server) {
 				matchedServers = append(matchedServers, server)
 			}

@@ -12,8 +12,9 @@ import (
 	"github.com/vertoforce/genericenricher/enrichers"
 )
 
+// Shodan Queries
 const (
-	shodanELKQuery = "\"Elastic Indices\""
+	ShodanELKQuery = "\"Elastic Indices\""
 )
 
 // ShodanReader Finds servers on shodan based on a query.  Implements ServerReader
