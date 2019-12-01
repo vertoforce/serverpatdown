@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewShodan(t *testing.T) {
-	shodanReader, err := NewShodan(shodanELKQuery, os.Getenv("SHODAN_KEY"), time.Second*5)
+	shodanReader, err := NewShodan(ShodanELKQuery, os.Getenv("SHODAN_KEY"), time.Second*5)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
