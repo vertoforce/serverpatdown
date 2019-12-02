@@ -41,3 +41,5 @@ func TestProcessWithoutReader(t *testing.T) {
 		t.Errorf("Did not match any servers when we should have")
 	}
 }
+
+// TODO: TestProcessWithReader
