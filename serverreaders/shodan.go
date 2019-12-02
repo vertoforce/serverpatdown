@@ -76,6 +76,12 @@ func (s *ShodanReader) ReadServer() (server genericenricher.Server, err error) {
 	return server, nil
 }
 
+// Close shodan server reader
+func (s *ShodanReader) Close() error {
+	s.shodanHostsIndex = len(s.shodanHosts)
+	return nil
+}
+
 func shodanGetConnectionURL(shodanHost *shodan.HostData) string {
 	switch shodanHost.Product {
 	case "Elastic":

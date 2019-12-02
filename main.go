@@ -14,6 +14,7 @@ import (
 // ServerReader source of servers
 type ServerReader interface {
 	ReadServer() (genericenricher.Server, error)
+	Close() error // Close server reader
 }
 
 // Searcher struct that stores server readers and search rules
@@ -63,6 +64,8 @@ func (searcher *Searcher) Process(ctx context.Context) (matchedServers []generic
 				matchedServers = append(matchedServers, server)
 			}
 		}
+		// Close this reader
+		serverReader.Close()
 	}
 
 	return matchedServers, nil
