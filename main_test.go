@@ -37,9 +37,10 @@ func TestProcessWithoutReader(t *testing.T) {
 
 	// Get matched servers
 	matchedServers, err := searcher.Process(context.Background())
-	if len(matchedServers) == 0 {
-		t.Errorf("Did not match any servers when we should have")
+	for range matchedServers {
+		return
 	}
+	t.Errorf("Did not match any servers when we should have")
 }
 
 // TODO: TestProcessWithReader

@@ -29,7 +29,7 @@ matchedServers, err := searcher.Process(context.Background())
 if err != nil {
     return
 }
-for _, matchedServer := range matchedServers {
+for matchedServer := range matchedServers {
     fmt.Println(matchedServer)
 }
 ```

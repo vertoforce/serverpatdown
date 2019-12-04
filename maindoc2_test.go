@@ -28,7 +28,7 @@ func Example() {
 	if err != nil {
 		return
 	}
-	for _, matchedServer := range matchedServers {
+	for matchedServer := range matchedServers {
 		fmt.Println(matchedServer)
 	}
 }
