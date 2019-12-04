@@ -46,34 +46,52 @@ func (searcher *Searcher) AddSearchRule(rule *regexp.Regexp) {
 }
 
 // Process Get all servers from readers and search each
-func (searcher *Searcher) Process(ctx context.Context) (matchedServers []genericenricher.Server, err error) {
-	matchedServers = []genericenricher.Server{}
+func (searcher *Searcher) Process(ctx context.Context) (matchedServers chan genericenricher.Server, err error) {
+	matchedServers = make(chan genericenricher.Server)
 
-	// Go through each server
-	for _, server := range searcher.servers {
-		if searcher.searchServer(ctx, server) {
-			matchedServers = append(matchedServers, server)
-		}
-	}
+	go func() {
+		defer close(matchedServers)
+		defer func() {
+			// Close all readers
+			for _, serverReader := range searcher.serverReaders {
+				serverReader.Close()
+			}
+		}()
 
-	// Go through each server reader
-	for _, serverReader := range searcher.serverReaders {
-		// Read until eof or error
-		for {
-			server, err := serverReader.ReadServer()
-			if err != nil && err != io.EOF {
-				break
-			}
-			if server != nil && searcher.searchServer(ctx, server) {
-				matchedServers = append(matchedServers, server)
-			}
-			if err == io.EOF {
-				break
+		// Go through each server
+		for _, server := range searcher.servers {
+			if searcher.searchServer(ctx, server) {
+				select {
+				case matchedServers <- server:
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
-		// Close this reader
-		serverReader.Close()
-	}
+
+		// Go through each server reader
+		for _, serverReader := range searcher.serverReaders {
+			// Read until eof or error
+			for {
+				server, err := serverReader.ReadServer()
+				if err != nil && err != io.EOF {
+					break
+				}
+				if server != nil && searcher.searchServer(ctx, server) {
+					select {
+					case matchedServers <- server:
+					case <-ctx.Done():
+						return
+					}
+				}
+				if err == io.EOF {
+					break
+				}
+			}
+			// Close this reader
+			serverReader.Close()
+		}
+	}()
 
 	return matchedServers, nil
 }
