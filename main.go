@@ -17,6 +17,12 @@ type ServerReader interface {
 	Close() error // Close server reader
 }
 
+// Match contains the matching server and regex matches
+type Match struct {
+	Server  genericenricher.Server
+	Matches []string // Matched regexes
+}
+
 // Searcher struct that stores server readers and search rules
 type Searcher struct {
 	serverReaders   []ServerReader
@@ -45,12 +51,14 @@ func (searcher *Searcher) AddSearchRule(rule *regexp.Regexp) {
 	searcher.rules = append(searcher.rules, rule)
 }
 
-// Process Get all servers from readers and search each
-func (searcher *Searcher) Process(ctx context.Context) (matchedServers chan genericenricher.Server, err error) {
-	matchedServers = make(chan genericenricher.Server)
+// Process Get all server and search each.  getMatchedData is a parameter to get the
+// data the regex rules matched on.  This could miss some matches and will be slower as it won't
+// stop on the first match
+func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool) (matches chan *Match, err error) {
+	matches = make(chan *Match)
 
 	go func() {
-		defer close(matchedServers)
+		defer close(matches)
 		defer func() {
 			// Close all readers
 			for _, serverReader := range searcher.serverReaders {
@@ -60,9 +68,11 @@ func (searcher *Searcher) Process(ctx context.Context) (matchedServers chan gene
 
 		// Go through each server
 		for _, server := range searcher.servers {
-			if searcher.searchServer(ctx, server) {
+			match := searcher.searchServer(ctx, server, getMatchedData)
+			if match.Server != nil {
+				// Send match
 				select {
-				case matchedServers <- server:
+				case matches <- match:
 				case <-ctx.Done():
 					return
 				}
@@ -77,13 +87,16 @@ func (searcher *Searcher) Process(ctx context.Context) (matchedServers chan gene
 				if err != nil && err != io.EOF {
 					break
 				}
-				if server != nil && searcher.searchServer(ctx, server) {
+
+				match := searcher.searchServer(ctx, server, getMatchedData)
+				if match.Server != nil {
 					select {
-					case matchedServers <- server:
+					case matches <- match:
 					case <-ctx.Done():
 						return
 					}
 				}
+
 				if err == io.EOF {
 					break
 				}
@@ -93,10 +106,27 @@ func (searcher *Searcher) Process(ctx context.Context) (matchedServers chan gene
 		}
 	}()
 
-	return matchedServers, nil
+	return matches, nil
 }
 
-func (searcher *Searcher) searchServer(ctx context.Context, server genericenricher.Server) bool {
+func (searcher *Searcher) searchServer(ctx context.Context, server genericenricher.Server, getMatchedData bool) *Match {
+	match := &Match{}
+
+	if getMatchedData {
+		if matches := searcher.getServerMatchedData(ctx, server); len(matches) > 0 {
+			match.Server = server
+			match.Matches = matches
+		}
+	} else {
+		if searcher.serverMatches(ctx, server) {
+			match.Server = server
+		}
+	}
+
+	return match
+}
+
+func (searcher *Searcher) serverMatches(ctx context.Context, server genericenricher.Server) bool {
 	// Scan server data (with limit if there is one)
 	var matched bool
 	if searcher.serverDataLimit == 0 {
@@ -110,4 +140,23 @@ func (searcher *Searcher) searchServer(ctx context.Context, server genericenrich
 		return true
 	}
 	return false
+}
+
+func (searcher *Searcher) getServerMatchedData(ctx context.Context, server genericenricher.Server) []string {
+	matchedData := []string{}
+
+	if searcher.serverDataLimit == 0 {
+		matches := searcher.rules.GetMatchedDataReader(ctx, server)
+		for match := range matches {
+			matchedData = append(matchedData, string(match))
+		}
+	} else {
+		matches := searcher.rules.GetMatchedDataReader(ctx, ioutil.NopCloser(io.LimitReader(server, searcher.serverDataLimit)))
+		for match := range matches {
+			matchedData = append(matchedData, string(match))
+		}
+	}
+	server.Close()
+
+	return matchedData
 }
