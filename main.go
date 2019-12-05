@@ -88,12 +88,14 @@ func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool) (mat
 					break
 				}
 
-				match := searcher.searchServer(ctx, server, getMatchedData)
-				if match.Server != nil {
-					select {
-					case matches <- match:
-					case <-ctx.Done():
-						return
+				if server != nil {
+					match := searcher.searchServer(ctx, server, getMatchedData)
+					if match.Server != nil {
+						select {
+						case matches <- match:
+						case <-ctx.Done():
+							return
+						}
 					}
 				}
 
