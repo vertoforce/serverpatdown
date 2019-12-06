@@ -2,9 +2,13 @@
 package serverpatdown
 
 import (
+	"bufio"
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"regexp"
 
 	"github.com/vertoforce/genericenricher"
@@ -49,6 +53,30 @@ func (searcher *Searcher) SetServerDataLimit(limit int64) {
 // AddSearchRule Add search rule
 func (searcher *Searcher) AddSearchRule(rule *regexp.Regexp) {
 	searcher.rules = append(searcher.rules, rule)
+}
+
+// AddSearchRulesFromFile Reads file rules (regex rule per line)
+func (searcher *Searcher) AddSearchRulesFromFile(filename string) error {
+	// Parse regex rules
+	inputRegex, err := os.Open(filename)
+	if err != nil {
+		return errors.New("error opening regex file")
+	}
+	return searcher.AddSearchRulesFromReader(inputRegex)
+}
+
+// AddSearchRulesFromReader Adds regex rules from a reader (regex rule per line)
+func (searcher *Searcher) AddSearchRulesFromReader(reader io.Reader) error {
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		regex, err := regexp.Compile(scanner.Text())
+		if err != nil {
+			return fmt.Errorf("invalid regex: `%s`", scanner.Text())
+		}
+		searcher.rules = append(searcher.rules, regex)
+	}
+
+	return nil
 }
 
 // Process Get all server and search each.  getMatchedData is a parameter to get the
