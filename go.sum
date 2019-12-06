@@ -41,8 +41,8 @@ github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJyk=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
-github.com/vertoforce/genericenricher v0.0.0-20191206185119-03763c281d03 h1:LpnzddHpWTjp+/gGDChD+Mmx6u4VOP7fWvEhefizR7I=
-github.com/vertoforce/genericenricher v0.0.0-20191206185119-03763c281d03/go.mod h1:gkEbR4f2JXj/Sob7mUtWIv/sq72RPCWX1PmisT3qi4o=
+github.com/vertoforce/genericenricher v0.0.0-20191206220837-c6af874e9e73 h1:fRGHjRy6NgObr8rnjrHIFMVVX81+o8InpfuWgOItcFg=
+github.com/vertoforce/genericenricher v0.0.0-20191206220837-c6af874e9e73/go.mod h1:gkEbR4f2JXj/Sob7mUtWIv/sq72RPCWX1PmisT3qi4o=
 github.com/vertoforce/multiregex v0.0.0-20191127192258-eed1c2d5d5ce/go.mod h1:cLl0Y/nlLQEK+2DpjVLxrgkJQgzEr7b+IsVsB9jNzRs=
 github.com/vertoforce/multiregex v0.0.0-20191205214147-7cfc691a8511 h1:uI+xFTYR4G+qqGo1DL3F3TMk1JeKcFQBd2jXyvDzHn4=
 github.com/vertoforce/multiregex v0.0.0-20191205214147-7cfc691a8511/go.mod h1:T+hgfarmSxvIbn5KZ3MUeShsHTxYt+2YsjjiEnJfjTg=
