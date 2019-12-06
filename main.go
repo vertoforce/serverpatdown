@@ -24,7 +24,7 @@ type ServerReader interface {
 // Match contains the matching server and regex matches
 type Match struct {
 	Server  genericenricher.Server
-	Matches []string // Matched regexes
+	Matches []multiregex.Match // Matched regexes
 }
 
 // Searcher struct that stores server readers and search rules
@@ -139,54 +139,40 @@ func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool) (mat
 	return matches, nil
 }
 
+// searchServer Search a server and return the match, or nil if not found
 func (searcher *Searcher) searchServer(ctx context.Context, server genericenricher.Server, getMatchedData bool) *Match {
 	match := &Match{}
+	match.Server = server
+
+	// Create new reader if we have a limit
+	var serverReader io.ReadCloser
+	if searcher.serverDataLimit == 0 {
+		serverReader = server
+	} else {
+		serverReader = ioutil.NopCloser(io.LimitReader(server, searcher.serverDataLimit))
+	}
 
 	if getMatchedData {
-		if matches := searcher.getServerMatchedData(ctx, server); len(matches) > 0 {
-			match.Server = server
-			match.Matches = matches
+		// Get the matched data
+		matchesChan := searcher.rules.GetMatchedDataReader(ctx, serverReader)
+
+		// Read all matched rules and data
+		ms := []multiregex.Match{}
+		for m := range matchesChan {
+			ms = append(ms, m)
+		}
+		match.Matches = ms
+
+		// Check if we got any
+		if len(match.Matches) > 0 {
+			return match
 		}
 	} else {
-		if searcher.serverMatches(ctx, server) {
-			match.Server = server
+		// Check if we match
+		if searcher.rules.MatchesRulesReader(ctx, serverReader) {
+			return match
 		}
 	}
 
-	return match
-}
-
-func (searcher *Searcher) serverMatches(ctx context.Context, server genericenricher.Server) bool {
-	// Scan server data (with limit if there is one)
-	var matched bool
-	if searcher.serverDataLimit == 0 {
-		matched = searcher.rules.MatchesRulesReader(ctx, ioutil.NopCloser(server))
-	} else {
-		matched = searcher.rules.MatchesRulesReader(ctx, ioutil.NopCloser(io.LimitReader(server, searcher.serverDataLimit)))
-	}
-
-	server.Close()
-	if matched {
-		return true
-	}
-	return false
-}
-
-func (searcher *Searcher) getServerMatchedData(ctx context.Context, server genericenricher.Server) []string {
-	matchedData := []string{}
-
-	if searcher.serverDataLimit == 0 {
-		matches := searcher.rules.GetMatchedDataReader(ctx, server)
-		for match := range matches {
-			matchedData = append(matchedData, string(match))
-		}
-	} else {
-		matches := searcher.rules.GetMatchedDataReader(ctx, ioutil.NopCloser(io.LimitReader(server, searcher.serverDataLimit)))
-		for match := range matches {
-			matchedData = append(matchedData, string(match))
-		}
-	}
-	server.Close()
-
-	return matchedData
+	return nil
 }
