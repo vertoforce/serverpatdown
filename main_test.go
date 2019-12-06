@@ -36,7 +36,7 @@ func TestProcessWithoutReader(t *testing.T) {
 	searcher.AddServer(ELKServer)
 
 	// Get matched servers
-	matchedServers, err := searcher.Process(context.Background(), false)
+	matchedServers, err := searcher.Process(context.Background(), false, false)
 	for range matchedServers {
 		return
 	}
