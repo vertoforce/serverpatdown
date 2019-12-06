@@ -23,6 +23,7 @@ type ServerReader interface {
 
 // Match contains the matching server and regex matches
 type Match struct {
+	Matched bool
 	Server  genericenricher.Server
 	Matches []multiregex.Match // Matched regexes
 }
@@ -79,10 +80,10 @@ func (searcher *Searcher) AddSearchRulesFromReader(reader io.Reader) error {
 	return nil
 }
 
-// Process Get all server and search each.  getMatchedData is a parameter to get the
-// data the regex rules matched on.  This could miss some matches and will be slower as it won't
-// stop on the first match
-func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool) (matches chan *Match, err error) {
+// Process Get all servers and search each.
+// getMatchedData is to get the data the regex rules matched on (Match.Matches). This could miss some matches and will be slower as it won't stop on the first match.
+// returnNotMatchedServers is to return servers that did not match (with Match.Matched=false) for logging or progress tracking
+func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool, returnNotMatchedServers bool) (matches chan *Match, err error) {
 	matches = make(chan *Match)
 
 	go func() {
@@ -97,7 +98,7 @@ func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool) (mat
 		// Go through each server
 		for _, server := range searcher.servers {
 			match := searcher.searchServer(ctx, server, getMatchedData)
-			if match.Server != nil {
+			if match.Matched || returnNotMatchedServers {
 				// Send match
 				select {
 				case matches <- match:
@@ -118,7 +119,7 @@ func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool) (mat
 
 				if server != nil {
 					match := searcher.searchServer(ctx, server, getMatchedData)
-					if match != nil {
+					if match.Matched || returnNotMatchedServers {
 						select {
 						case matches <- match:
 						case <-ctx.Done():
@@ -139,10 +140,11 @@ func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool) (mat
 	return matches, nil
 }
 
-// searchServer Search a server and return the match, or nil if not found
+// searchServer Search a server and return the match
 func (searcher *Searcher) searchServer(ctx context.Context, server genericenricher.Server, getMatchedData bool) *Match {
 	match := &Match{}
 	match.Server = server
+	match.Matched = false
 
 	// Create new reader if we have a limit
 	var serverReader io.ReadCloser
@@ -165,14 +167,14 @@ func (searcher *Searcher) searchServer(ctx context.Context, server genericenrich
 
 		// Check if we got any
 		if len(match.Matches) > 0 {
-			return match
+			match.Matched = true
 		}
 	} else {
 		// Check if we match
 		if searcher.rules.MatchesRulesReader(ctx, serverReader) {
-			return match
+			match.Matched = true
 		}
 	}
 
-	return nil
+	return match
 }

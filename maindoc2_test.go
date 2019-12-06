@@ -24,7 +24,7 @@ func Example() {
 	searcher.SetServerDataLimit(1024 * 1024) // 1MB
 
 	// Get matches
-	matchedServers, err := searcher.Process(context.Background(), false)
+	matchedServers, err := searcher.Process(context.Background(), false, false)
 	if err != nil {
 		return
 	}
