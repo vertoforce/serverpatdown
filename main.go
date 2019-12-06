@@ -118,7 +118,7 @@ func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool) (mat
 
 				if server != nil {
 					match := searcher.searchServer(ctx, server, getMatchedData)
-					if match.Server != nil {
+					if match != nil {
 						select {
 						case matches <- match:
 						case <-ctx.Done():
