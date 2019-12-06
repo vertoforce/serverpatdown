@@ -12,13 +12,15 @@ import (
 	"regexp"
 
 	"github.com/vertoforce/genericenricher"
+	"github.com/vertoforce/genericenricher/enrichers"
 	"github.com/vertoforce/multiregex"
 )
 
 // ServerReader source of servers
 type ServerReader interface {
 	ReadServer() (genericenricher.Server, error)
-	Close() error // Close server reader
+	Close() error                       // Close server reader
+	SetServerType(enrichers.ServerType) // Set server type if known
 }
 
 // Match contains the matching server and regex matches
