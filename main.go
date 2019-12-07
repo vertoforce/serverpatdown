@@ -83,6 +83,7 @@ func (searcher *Searcher) AddSearchRulesFromReader(reader io.Reader) error {
 // Process Get all servers and search each.
 // getMatchedData is to get the data the regex rules matched on (Match.Matches). This could miss some matches and will be slower as it won't stop on the first match.
 // returnNotMatchedServers is to return servers that did not match (with Match.Matched=false) for logging or progress tracking
+// It first scans all single servers added, then goes round robin for each server reader
 func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool, returnNotMatchedServers bool) (matches chan *Match, err error) {
 	matches = make(chan *Match)
 
@@ -109,6 +110,7 @@ func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool, retu
 		}
 
 		// Go through each server reader
+		// TODO: Change to be round robin approach
 		for _, serverReader := range searcher.serverReaders {
 			// Read until eof or error
 			for {
