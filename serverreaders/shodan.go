@@ -33,6 +33,7 @@ func NewShodan(query string, token string, timeout time.Duration) (*ShodanReader
 	httpClient := &http.Client{Timeout: timeout}
 	client := shodan.NewClient(httpClient, token)
 
+	// TODO: pagination?
 	matchedHosts, err := client.GetHostsForQuery(context.Background(), &shodan.HostQueryOptions{Query: query})
 	if err != nil {
 		return nil, err

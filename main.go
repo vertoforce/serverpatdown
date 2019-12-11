@@ -25,7 +25,7 @@ const (
 	DepthFirst
 )
 
-// ServerReader source of servers
+// ServerReader Source of servers, should return EOF on each read after EOF
 type ServerReader interface {
 	ReadServer() (genericenricher.Server, error)
 	Close() error // Close server reader

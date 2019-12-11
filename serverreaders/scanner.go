@@ -93,7 +93,7 @@ func (s *Scanner) ReadServer() (genericenricher.Server, error) {
 		}
 
 		// No more ipsWithPort, EOF
-		s.Close()
+		s.readCancel()
 		return nil, io.EOF
 	}
 }
