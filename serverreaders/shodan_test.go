@@ -2,6 +2,7 @@ package serverreaders
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -19,12 +20,25 @@ func TestNewShodan(t *testing.T) {
 
 	// Check we can read servers from our query
 	serverCount := 0
-	for server, err := shodanReader.ReadServer(); err == nil; {
+	for {
+		server, err := shodanReader.ReadServer()
+		if err != nil {
+			break
+		}
 		fmt.Println(server.GetIP())
 		serverCount++
-		break
 	}
 	if serverCount == 0 {
 		t.Errorf("No servers read")
+	}
+
+	// Check EOFs
+	_, err = shodanReader.ReadServer()
+	if err != io.EOF {
+		t.Errorf("Should have been eof")
+	}
+	_, err = shodanReader.ReadServer()
+	if err != io.EOF {
+		t.Errorf("Should have been eof")
 	}
 }
