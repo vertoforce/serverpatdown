@@ -55,6 +55,11 @@ func (s *Scanner) AddPort(port int) {
 	s.Ports = append(s.Ports, port)
 }
 
+// Reset reader to start over
+func (s *Scanner) Reset() {
+	s.Close()
+}
+
 // ReadServer Read next server with open port
 func (s *Scanner) ReadServer() (genericenricher.Server, error) {
 	if s.ipsWithPort == nil {
@@ -78,8 +83,10 @@ func (s *Scanner) ReadServer() (genericenricher.Server, error) {
 			} else {
 				server, err = genericenricher.GetServerWithType(enrichers.GetConnectionString(ipWithPort.IP, ipWithPort.Port, s.serverType), s.serverType)
 			}
-			// TODO: Handle this error if needed
-			_ = err
+			if err != nil {
+				// Failed to create server, continue
+				continue
+			}
 
 			// Return this server
 			return server, nil
@@ -92,9 +99,10 @@ func (s *Scanner) ReadServer() (genericenricher.Server, error) {
 }
 
 // Close reading of ips
-func (s *Scanner) Close() {
+func (s *Scanner) Close() error {
 	s.readCancel()
 	s.ipsWithPort = nil
+	return nil
 }
 
 // GetIPsWithPort Get all ips with port based on networks to scan and ports to scan

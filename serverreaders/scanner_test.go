@@ -45,6 +45,11 @@ func TestScanner(t *testing.T) {
 	if err != io.EOF {
 		t.Errorf("Should have been EOF")
 	}
+
+	server, err = s.ReadServer()
+	if err != io.EOF {
+		t.Errorf("Should have been EOF")
+	}
 }
 
 func TestGetIPs(t *testing.T) {
