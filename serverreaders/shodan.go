@@ -69,7 +69,7 @@ func (s *ShodanReader) ReadServer() (server genericenricher.Server, err error) {
 		server, err = genericenricher.GetServerWithType(connectionString, s.serverType)
 	}
 	if err != nil {
-		// TODO: Handle this differently?
+		// TODO: Change this to just get the next server
 		return nil, err
 	}
 

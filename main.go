@@ -15,6 +15,16 @@ import (
 	"github.com/vertoforce/multiregex"
 )
 
+// IterationStyle How to iterate over the readers, breadth first or depth first
+type IterationStyle int
+
+const (
+	// BreadthFirst Iterate over each ServerReader reading a server round robin style
+	BreadthFirst IterationStyle = iota
+	// DepthFirst Read all servers from a ServerReader before moving on to the next reader
+	DepthFirst
+)
+
 // ServerReader source of servers
 type ServerReader interface {
 	ReadServer() (genericenricher.Server, error)
@@ -30,10 +40,18 @@ type Match struct {
 
 // Searcher struct that stores server readers and search rules
 type Searcher struct {
-	serverReaders   []ServerReader
-	servers         []genericenricher.Server
-	rules           multiregex.RuleSet
-	serverDataLimit int64 // Limit of data to search
+	// Get the data the regex rules matched on (Match.Matches). This could miss some matches and will be slower as it won't stop on the first match.
+	GetMatchedData bool
+	// Return servers that did not match (with Match.Matched=false) for logging or progress tracking
+	ReturnNotMatchedServers bool
+	// Limit of data to read on each server
+	ServerDataLimit int64
+	// Style of iterating over readers (breadth first or depth first)
+	ServerReaderIterationStyle IterationStyle
+
+	serverReaders []ServerReader
+	servers       []genericenricher.Server
+	rules         multiregex.RuleSet
 }
 
 // AddServerReader Add source of servers
@@ -44,11 +62,6 @@ func (searcher *Searcher) AddServerReader(serverReader ServerReader) {
 // AddServer Add a single server
 func (searcher *Searcher) AddServer(server genericenricher.Server) {
 	searcher.servers = append(searcher.servers, server)
-}
-
-// SetServerDataLimit Searcher will read all data on server unless this limit is set
-func (searcher *Searcher) SetServerDataLimit(limit int64) {
-	searcher.serverDataLimit = limit
 }
 
 // AddSearchRule Add search rule
@@ -74,17 +87,15 @@ func (searcher *Searcher) AddSearchRulesFromReader(reader io.Reader) error {
 		if err != nil {
 			return fmt.Errorf("invalid regex: `%s`", scanner.Text())
 		}
-		searcher.rules = append(searcher.rules, regex)
+		searcher.AddSearchRule(regex)
 	}
 
 	return nil
 }
 
 // Process Get all servers and search each.
-// getMatchedData is to get the data the regex rules matched on (Match.Matches). This could miss some matches and will be slower as it won't stop on the first match.
-// returnNotMatchedServers is to return servers that did not match (with Match.Matched=false) for logging or progress tracking
-// It first scans all single servers added, then goes round robin for each server reader
-func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool, returnNotMatchedServers bool) (matches chan *Match, err error) {
+// It first scans all single servers added, then goes depth/breadth for each server reader
+func (searcher *Searcher) Process(ctx context.Context) (matches chan *Match, err error) {
 	matches = make(chan *Match)
 
 	go func() {
@@ -96,50 +107,88 @@ func (searcher *Searcher) Process(ctx context.Context, getMatchedData bool, retu
 			}
 		}()
 
-		// Go through each server
+		// Process each server
 		for _, server := range searcher.servers {
-			match := searcher.searchServer(ctx, server, getMatchedData)
-			if match.Matched || returnNotMatchedServers {
-				// Send match
-				select {
-				case matches <- match:
-				case <-ctx.Done():
-					return
-				}
-			}
+			searcher.processServer(ctx, server, matches)
 		}
 
-		// Go through each server reader
-		// TODO: Change to be round robin approach
-		for _, serverReader := range searcher.serverReaders {
-			// Read until eof or error
-			for {
-				server, err := serverReader.ReadServer()
-				if err != nil && err != io.EOF {
-					break
-				}
+		// Process readers
+		if searcher.ServerReaderIterationStyle == BreadthFirst {
+			// Convert to a map[*ServerReader]finishedReading
+			serverReadersMap := map[*ServerReader]bool{}
+			for _, serverReader := range searcher.serverReaders {
+				serverReadersMap[&serverReader] = false
+			}
 
-				if server != nil {
-					match := searcher.searchServer(ctx, server, getMatchedData)
-					if match.Matched || returnNotMatchedServers {
-						select {
-						case matches <- match:
-						case <-ctx.Done():
-							return
+		outer:
+			for {
+				// Keep looping over each reader until we've finished them all
+				finishedReaders := 0
+				for serverReader, read := range serverReadersMap {
+					// Check if this has been read
+					if read {
+						finishedReaders++
+						// Check if we are done all readers
+						if finishedReaders == len(serverReadersMap) {
+							break outer
 						}
+						continue
+					}
+
+					// Read and process a server
+					if !searcher.processAServerReaderServer(ctx, *serverReader, matches) {
+						serverReadersMap[serverReader] = true
 					}
 				}
-
-				if err == io.EOF {
-					break
+			}
+		} else if searcher.ServerReaderIterationStyle == DepthFirst {
+			for _, serverReader := range searcher.serverReaders {
+				// Process all servers in this reader
+				for searcher.processAServerReaderServer(ctx, serverReader, matches) {
 				}
 			}
-			// Close this reader
-			serverReader.Close()
+		} else {
+			return
 		}
+
 	}()
 
 	return matches, nil
+}
+
+// processAServerReaderServer Read single server from ServerReader and process, returns true if there is more to be read
+func (searcher *Searcher) processAServerReaderServer(ctx context.Context, serverReader ServerReader, matches chan *Match) bool {
+	server, err := serverReader.ReadServer()
+	if err != nil && err != io.EOF {
+		// Close this reader
+		serverReader.Close()
+		return false
+	}
+
+	if server != nil {
+		searcher.processServer(ctx, server, matches)
+	}
+
+	if err == io.EOF {
+		// Close this reader
+		serverReader.Close()
+		return false
+	}
+
+	return true
+}
+
+// processServer Given a server send the associated match
+func (searcher *Searcher) processServer(ctx context.Context, server genericenricher.Server, matches chan *Match) {
+	match := searcher.searchServer(ctx, server, searcher.GetMatchedData)
+	if match.Matched || searcher.ReturnNotMatchedServers {
+		// Send match
+		select {
+		case matches <- match:
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 // searchServer Search a server and return the match
@@ -148,12 +197,18 @@ func (searcher *Searcher) searchServer(ctx context.Context, server genericenrich
 	match.Server = server
 	match.Matched = false
 
+	// Check if we can connect
+	err := server.Connect()
+	if err != nil {
+		return match
+	}
+
 	// Create new reader if we have a limit
 	var serverReader io.ReadCloser
-	if searcher.serverDataLimit == 0 {
+	if searcher.ServerDataLimit == 0 {
 		serverReader = server
 	} else {
-		serverReader = ioutil.NopCloser(io.LimitReader(server, searcher.serverDataLimit))
+		serverReader = ioutil.NopCloser(io.LimitReader(server, searcher.ServerDataLimit))
 	}
 
 	if getMatchedData {
