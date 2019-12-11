@@ -26,6 +26,7 @@ const (
 )
 
 // ServerReader Source of servers, should return EOF on each read after EOF
+// TODO: Convention on what to do with error on creation of server
 type ServerReader interface {
 	ReadServer() (genericenricher.Server, error)
 	Close() error // Close server reader
@@ -114,31 +115,18 @@ func (searcher *Searcher) Process(ctx context.Context) (matches chan *Match, err
 
 		// Process readers
 		if searcher.ServerReaderIterationStyle == BreadthFirst {
-			// Convert to a map[*ServerReader]finishedReading
-			serverReadersMap := map[*ServerReader]bool{}
-			for _, serverReader := range searcher.serverReaders {
-				serverReadersMap[&serverReader] = false
-			}
-
-		outer:
 			for {
 				// Keep looping over each reader until we've finished them all
 				finishedReaders := 0
-				for serverReader, read := range serverReadersMap {
-					// Check if this has been read
-					if read {
-						finishedReaders++
-						// Check if we are done all readers
-						if finishedReaders == len(serverReadersMap) {
-							break outer
-						}
-						continue
-					}
-
+				for _, serverReader := range searcher.serverReaders {
 					// Read and process a server
-					if !searcher.processAServerReaderServer(ctx, *serverReader, matches) {
-						serverReadersMap[serverReader] = true
+					if !searcher.processAServerReaderServer(ctx, serverReader, matches) {
+						// Done reading this
+						finishedReaders++
 					}
+				}
+				if finishedReaders == len(searcher.serverReaders) {
+					break
 				}
 			}
 		} else if searcher.ServerReaderIterationStyle == DepthFirst {
