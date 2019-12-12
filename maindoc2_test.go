@@ -3,15 +3,15 @@ package serverpatdown
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/vertoforce/genericenricher"
-	"github.com/vertoforce/multiregex"
 )
 
 func Example() {
 	// Create a searcher object
 	searcher := NewSearcher()
-	searcher.AddSearchRule(multiregex.MatchAll[0])
+	searcher.AddSearchRule(regexp.MustCompile(`google`))
 
 	// Add a single server to scan
 	server, err := genericenricher.GetServer("http://google.com")

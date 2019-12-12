@@ -3,6 +3,7 @@ package serverpatdown
 import (
 	"context"
 	"net"
+	"regexp"
 	"testing"
 	"time"
 
@@ -26,8 +27,40 @@ import (
 // }
 
 func TestProcessWithoutReader(t *testing.T) {
-	// Create new searcher
+	// Test matching against google
 	searcher := NewSearcher()
+	searcher.AddSearchRule(regexp.MustCompile(`google`))
+
+	// Add a servers to scan
+	server, err := genericenricher.GetServer("http://google.com") // Should match
+	if err != nil {
+		return
+	}
+	searcher.AddServer(server)
+	server, err = genericenricher.GetServer("http://localhost") // Should not match
+	if err != nil {
+		return
+	}
+	searcher.AddServer(server)
+
+	// Set data limit
+	searcher.ServerDataLimit = (1024 * 1024) // 1MB
+
+	// Get matches
+	matchedServers, err := searcher.Process(context.Background())
+	if err != nil {
+		return
+	}
+	count := 0
+	for range matchedServers {
+		count++
+	}
+	if count != 1 {
+		t.Errorf("Did not match servers correctly")
+	}
+
+	// Test returning non matched servers
+	searcher = NewSearcher()
 	searcher.ReturnNotMatchedServers = true
 	searcher.AddSearchRule(multiregex.MatchAll[0])
 
@@ -40,11 +73,14 @@ func TestProcessWithoutReader(t *testing.T) {
 	searcher.AddServer(ELKServer)
 
 	// Get matched servers
-	matchedServers, err := searcher.Process(context.Background())
+	matchedServers, err = searcher.Process(context.Background())
+	count = 0
 	for range matchedServers {
-		return
+		count++
 	}
-	t.Errorf("Did not match any servers when we should have")
+	if count != 1 {
+		t.Errorf("Did not match any servers when we should have")
+	}
 }
 
 func TestProcessWithReader(t *testing.T) {
