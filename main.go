@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/vertoforce/genericenricher"
 	"github.com/vertoforce/multiregex"
@@ -49,6 +50,8 @@ type Searcher struct {
 	ServerDataLimit int64
 	// Style of iterating over readers (breadth first or depth first)
 	ServerReaderIterationStyle IterationStyle
+	// Timeout to connect to each server
+	ServerTimeout time.Duration
 
 	serverReaders []ServerReader
 	servers       []genericenricher.Server
@@ -186,7 +189,9 @@ func (searcher *Searcher) searchServer(ctx context.Context, server genericenrich
 	match.Matched = false
 
 	// Check if we can connect
-	err := server.Connect()
+	c, cancel := context.WithTimeout(ctx, searcher.ServerTimeout)
+	err := server.Connect(c)
+	cancel()
 	if err != nil {
 		return match
 	}
@@ -199,7 +204,7 @@ func (searcher *Searcher) searchServer(ctx context.Context, server genericenrich
 		serverReader = ioutil.NopCloser(io.LimitReader(server, searcher.ServerDataLimit))
 	}
 
-	if getMatchedData {
+	if searcher.GetMatchedData {
 		// Get the matched data
 		matchesChan := searcher.rules.GetMatchedDataReader(ctx, serverReader)
 
