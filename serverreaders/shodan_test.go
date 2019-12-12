@@ -1,6 +1,7 @@
 package serverreaders
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +12,7 @@ import (
 )
 
 func TestNewShodan(t *testing.T) {
-	shodanReader, err := NewShodan(ShodanELKQuery, os.Getenv("SHODAN_KEY"), time.Second*5)
+	shodanReader, err := NewShodan(context.Background(), ShodanELKQuery, os.Getenv("SHODAN_KEY"), time.Second*5)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -40,5 +41,24 @@ func TestNewShodan(t *testing.T) {
 	_, err = shodanReader.ReadServer()
 	if err != io.EOF {
 		t.Errorf("Should have been eof")
+	}
+
+	// Check EOFs after close
+	shodanReader.Close()
+
+	_, err = shodanReader.ReadServer()
+	if err != io.EOF {
+		t.Errorf("Should have been eof")
+	}
+	_, err = shodanReader.ReadServer()
+	if err != io.EOF {
+		t.Errorf("Should have been eof")
+	}
+
+	// Check reset
+	shodanReader.Reset()
+	_, err = shodanReader.ReadServer()
+	if err != nil {
+		t.Errorf(err.Error())
 	}
 }

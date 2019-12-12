@@ -15,6 +15,7 @@ import (
 )
 
 func TestScanner(t *testing.T) {
+	// Build http testing server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Hello, client")
 	}))
@@ -25,30 +26,52 @@ func TestScanner(t *testing.T) {
 		t.Errorf("Error getting testing server IP")
 	}
 
-	// Try just getting one server
+	// Build scanner
 	s := NewScanner()
 	s.AddIPNet(net.IPNet{IP: tsIP, Mask: net.IPMask{255, 255, 255, 255}})
 	s.AddPort(int(tsPort))
-	s.SetServerType(enrichers.ELK)
+	s.SetServerType(enrichers.HTTP)
+	s.CheckPortOpen = true
 
 	server, err := s.ReadServer()
 	if server == nil || server.GetIP().String() != tsIP.String() || server.GetPort() != uint16(tsPort) {
-		fmt.Println(server.GetIP())
-		fmt.Println(server.GetPort())
+		if server != nil {
+			fmt.Println(server.GetIP())
+			fmt.Println(server.GetPort())
+		}
 		t.Errorf("Did not get correct server")
 	}
 	if err != nil {
 		t.Errorf("Should not have gotten error")
 	}
 
+	// Check EOFs
+	server, err = s.ReadServer()
+	if err != io.EOF {
+		t.Errorf("Should have been EOF")
+	}
 	server, err = s.ReadServer()
 	if err != io.EOF {
 		t.Errorf("Should have been EOF")
 	}
 
+	// Check EOFs after close
+	s.Close()
+
 	server, err = s.ReadServer()
 	if err != io.EOF {
 		t.Errorf("Should have been EOF")
+	}
+	server, err = s.ReadServer()
+	if err != io.EOF {
+		t.Errorf("Should have been EOF")
+	}
+
+	// Check reset
+	s.Reset()
+	server, err = s.ReadServer()
+	if err != nil {
+		t.Errorf(err.Error())
 	}
 }
 

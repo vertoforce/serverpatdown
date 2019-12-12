@@ -31,6 +31,7 @@ const (
 type ServerReader interface {
 	ReadServer() (genericenricher.Server, error)
 	Close() error // Close server reader
+	Reset() error // Reset to start reading servers again
 }
 
 // Match contains the matching server and regex matches

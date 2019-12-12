@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/vertoforce/genericenricher"
 	"github.com/vertoforce/genericenricher/enrichers"
@@ -50,6 +51,7 @@ func TestProcessWithReader(t *testing.T) {
 	searcher := &Searcher{}
 	searcher.AddSearchRule(multiregex.MatchAll[0])
 	searcher.ReturnNotMatchedServers = true
+	searcher.ServerTimeout = time.Millisecond
 
 	// Create server readers
 	reader1 := serverreaders.NewScanner()
@@ -62,13 +64,15 @@ func TestProcessWithReader(t *testing.T) {
 	reader2.SetServerType(enrichers.HTTP)
 	reader1.AddIPNet(net.IPNet{IP: net.IP{127, 0, 0, 1}, Mask: net.IPv4Mask(255, 255, 255, 255)})
 	reader1.AddIPNet(net.IPNet{IP: net.IP{127, 0, 0, 2}, Mask: net.IPv4Mask(255, 255, 255, 255)})
-	reader2.AddIPNet(net.IPNet{IP: net.IP{127, 0, 0, 3}, Mask: net.IPv4Mask(255, 255, 255, 255)})
-	reader2.AddIPNet(net.IPNet{IP: net.IP{127, 0, 0, 4}, Mask: net.IPv4Mask(255, 255, 255, 255)})
+	reader1.AddIPNet(net.IPNet{IP: net.IP{127, 0, 0, 3}, Mask: net.IPv4Mask(255, 255, 255, 255)})
+	reader1.AddIPNet(net.IPNet{IP: net.IP{127, 0, 0, 4}, Mask: net.IPv4Mask(255, 255, 255, 255)})
+	reader2.AddIPNet(net.IPNet{IP: net.IP{127, 0, 0, 5}, Mask: net.IPv4Mask(255, 255, 255, 255)})
+	reader2.AddIPNet(net.IPNet{IP: net.IP{127, 0, 0, 6}, Mask: net.IPv4Mask(255, 255, 255, 255)})
 	searcher.AddServerReader(reader1)
 	searcher.AddServerReader(reader2)
 
 	// Check depth first
-	expectedOrder := []string{"127.0.0.1", "127.0.0.2", "127.0.0.3", "127.0.0.4"}
+	expectedOrder := []string{"127.0.0.1", "127.0.0.2", "127.0.0.3", "127.0.0.4", "127.0.0.5", "127.0.0.6"}
 	searcher.ServerReaderIterationStyle = DepthFirst
 	matchedServers, err := searcher.Process(context.Background())
 	if err != nil {
@@ -89,7 +93,7 @@ func TestProcessWithReader(t *testing.T) {
 	// Check breadth first
 	reader1.Reset()
 	reader2.Reset()
-	expectedOrder = []string{"127.0.0.1", "127.0.0.3", "127.0.0.2", "127.0.0.4"}
+	expectedOrder = []string{"127.0.0.1", "127.0.0.5", "127.0.0.2", "127.0.0.6", "127.0.0.3", "127.0.0.4"}
 	searcher.ServerReaderIterationStyle = BreadthFirst
 	matchedServers, err = searcher.Process(context.Background())
 	if err != nil {
@@ -97,7 +101,6 @@ func TestProcessWithReader(t *testing.T) {
 	}
 	i = 0
 	for matchedServer := range matchedServers {
-		// TODO: Check or differently because server readers are stored in a map
 		if matchedServer.Server.GetIP().String() != expectedOrder[i] {
 			t.Errorf("Did not get expected order")
 			break
