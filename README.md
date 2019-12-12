@@ -37,7 +37,6 @@ for matchedServer := range matchedServers {
 ## TODO
 
 - Add marshal-able state to save and restore sessions
-  - This would be difficult because I'd need to save the state of every reader which means each reader would need `SaveState()` and `RestoreState()` functions.
 
 ## Dependencies
 
