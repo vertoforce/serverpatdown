@@ -23,22 +23,24 @@ type ShodanReader struct {
 	shodanHosts      []*shodan.HostData
 	shodanHostsIndex int
 	serverType       enrichers.ServerType
+	client           *shodan.Client
 }
 
 // NewShodan Create new shodan reader based on a shodan query
-func NewShodan(query string, token string, timeout time.Duration) (*ShodanReader, error) {
+func NewShodan(ctx context.Context, query string, token string, timeout time.Duration) (*ShodanReader, error) {
 	s := &ShodanReader{}
+	s.query = query
 
-	// Make the query
+	// Make the shodan client
 	httpClient := &http.Client{Timeout: timeout}
 	client := shodan.NewClient(httpClient, token)
+	s.client = client
 
-	// TODO: pagination?
-	matchedHosts, err := client.GetHostsForQuery(context.Background(), &shodan.HostQueryOptions{Query: query})
+	// Make query
+	err := s.Reset()
 	if err != nil {
 		return nil, err
 	}
-	s.shodanHosts = matchedHosts.Matches
 
 	return s, nil
 }
@@ -80,6 +82,22 @@ func (s *ShodanReader) ReadServer() (server genericenricher.Server, err error) {
 // Close shodan server reader
 func (s *ShodanReader) Close() error {
 	s.shodanHostsIndex = len(s.shodanHosts)
+	return nil
+}
+
+// Reset make shodan query again and restart processing of hosts
+func (s *ShodanReader) Reset() error {
+	s.shodanHostsIndex = 0
+
+	// TODO: pagination?
+	ctx, cancel := context.WithTimeout(context.Background(), s.client.Client.Timeout)
+	matchedHosts, err := s.client.GetHostsForQuery(ctx, &shodan.HostQueryOptions{Query: s.query})
+	cancel()
+	if err != nil {
+		return err
+	}
+	s.shodanHosts = matchedHosts.Matches
+
 	return nil
 }
 

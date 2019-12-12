@@ -27,7 +27,7 @@ type Scanner struct {
 	Nets          []net.IPNet
 	Ports         []int // Ports to scan
 	Timeout       time.Duration
-	CheckPortOpen bool // Only read server with port open
+	CheckPortOpen bool // Only return servers that have the port open
 
 	serverType  enrichers.ServerType
 	readCtx     context.Context
@@ -53,11 +53,6 @@ func (s *Scanner) AddIPNet(n net.IPNet) {
 // AddPort Add port to scan
 func (s *Scanner) AddPort(port int) {
 	s.Ports = append(s.Ports, port)
-}
-
-// Reset reader to start over
-func (s *Scanner) Reset() {
-	s.Close()
 }
 
 // ReadServer Read next server with open port
@@ -101,6 +96,12 @@ func (s *Scanner) ReadServer() (genericenricher.Server, error) {
 // Close reading of ips
 func (s *Scanner) Close() error {
 	s.readCancel()
+	return nil
+}
+
+// Reset back to start of ips
+func (s *Scanner) Reset() error {
+	s.Close()
 	s.ipsWithPort = nil
 	return nil
 }
@@ -162,7 +163,7 @@ func inc(ip net.IP) {
 }
 
 func portOpen(ip net.IP, port int, timeout time.Duration) bool {
-	conn, err := net.DialTimeout("tcp", ip.String(), timeout)
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ip.String(), port), timeout)
 
 	if err != nil {
 		// Check if we have too many connections

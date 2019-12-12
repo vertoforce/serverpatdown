@@ -17,7 +17,7 @@ func Example_withServerReader() {
 	searcher.AddSearchRule(multiregex.MatchAll[0])
 
 	// Create shodan ELK serverreader
-	shodanReader, err := serverreaders.NewShodan(serverreaders.ShodanELKQuery, os.Getenv("SHODAN_KEY"), time.Second*5)
+	shodanReader, err := serverreaders.NewShodan(context.Background(), serverreaders.ShodanELKQuery, os.Getenv("SHODAN_KEY"), time.Second*5)
 	if err != nil {
 		return
 	}
