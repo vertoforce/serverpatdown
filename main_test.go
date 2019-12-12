@@ -27,7 +27,8 @@ import (
 
 func TestProcessWithoutReader(t *testing.T) {
 	// Create new searcher
-	searcher := &Searcher{}
+	searcher := NewSearcher()
+	searcher.ReturnNotMatchedServers = true
 	searcher.AddSearchRule(multiregex.MatchAll[0])
 
 	// Add a server
@@ -48,7 +49,7 @@ func TestProcessWithoutReader(t *testing.T) {
 
 func TestProcessWithReader(t *testing.T) {
 	// Create new searcher
-	searcher := &Searcher{}
+	searcher := NewSearcher()
 	searcher.AddSearchRule(multiregex.MatchAll[0])
 	searcher.ReturnNotMatchedServers = true
 	searcher.ServerTimeout = time.Millisecond

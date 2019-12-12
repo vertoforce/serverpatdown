@@ -10,7 +10,7 @@ import (
 
 func Example() {
 	// Create a searcher object
-	searcher := &Searcher{}
+	searcher := NewSearcher()
 	searcher.AddSearchRule(multiregex.MatchAll[0])
 
 	// Add a single server to scan
@@ -29,6 +29,8 @@ func Example() {
 		return
 	}
 	for matchedServer := range matchedServers {
-		fmt.Println(matchedServer)
+		fmt.Println(matchedServer.Server.GetConnectString())
 	}
+
+	// Output: http://google.com
 }

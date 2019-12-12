@@ -10,6 +10,6 @@ require (
 	github.com/ns3777k/go-shodan v3.1.0+incompatible
 	github.com/smartystreets/assertions v1.0.1 // indirect
 	github.com/smartystreets/goconvey v1.6.4 // indirect
-	github.com/vertoforce/genericenricher v0.0.0-20191212173610-c58130116650
+	github.com/vertoforce/genericenricher v0.0.0-20191212215538-58e52a02e760
 	github.com/vertoforce/multiregex v0.0.0-20191205214147-7cfc691a8511
 )

@@ -24,6 +24,8 @@ const (
 	BreadthFirst IterationStyle = iota
 	// DepthFirst Read all servers from a ServerReader before moving on to the next reader
 	DepthFirst
+
+	defaultServerTimeout = time.Second * 4
 )
 
 // ServerReader Source of servers, should return EOF on each read after EOF
@@ -57,6 +59,11 @@ type Searcher struct {
 	serverReaders []ServerReader
 	servers       []genericenricher.Server
 	rules         multiregex.RuleSet
+}
+
+func NewSearcher() *Searcher {
+	s := &Searcher{ServerTimeout: defaultServerTimeout}
+	return s
 }
 
 // AddServerReader Add source of servers
@@ -192,8 +199,8 @@ func (searcher *Searcher) searchServer(ctx context.Context, server genericenrich
 	// Check if we can connect
 	c, cancel := context.WithTimeout(ctx, searcher.ServerTimeout)
 	err := server.Connect(c)
-	cancel()
 	if err != nil {
+		cancel()
 		return match
 	}
 
@@ -226,6 +233,9 @@ func (searcher *Searcher) searchServer(ctx context.Context, server genericenrich
 			match.Matched = true
 		}
 	}
+
+	// Cancel connection to server
+	cancel()
 
 	return match
 }
