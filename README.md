@@ -12,7 +12,7 @@ Example
 ```go
 // Create a searcher object
 searcher := NewSearcher()
-searcher.AddSearchRule(multiregex.MatchAll[0])
+searcher.AddSearchRule(regexp.MustCompile(`google`))
 
 // Add a single server to scan
 server, err := genericenricher.GetServer("http://google.com")
@@ -25,13 +25,15 @@ searcher.AddServer(server)
 searcher.SetServerDataLimit(1024 * 1024) // 1MB
 
 // Get matches
-matchedServers, err := searcher.Process(context.Background(), false, false)
+matchedServers, err := searcher.Process(context.Background())
 if err != nil {
     return
 }
 for matchedServer := range matchedServers {
-    fmt.Println(matchedServer)
+    fmt.Println(matchedServer.GetConnectString())
 }
+
+// Output: http://google.com
 ```
 
 ## TODO
