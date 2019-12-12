@@ -13,7 +13,7 @@ import (
 
 func Example_withServerReader() {
 	// Create a searcher object
-	searcher := &Searcher{}
+	searcher := NewSearcher()
 	searcher.AddSearchRule(multiregex.MatchAll[0])
 
 	// Create shodan ELK serverreader
@@ -35,6 +35,6 @@ func Example_withServerReader() {
 		return
 	}
 	for matchedServer := range matchedServers {
-		fmt.Println(matchedServer)
+		fmt.Println(matchedServer.Server.GetConnectString())
 	}
 }

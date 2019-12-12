@@ -11,7 +11,7 @@ Example
 
 ```go
 // Create a searcher object
-searcher := &Searcher{}
+searcher := NewSearcher()
 searcher.AddSearchRule(multiregex.MatchAll[0])
 
 // Add a single server to scan
