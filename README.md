@@ -39,6 +39,8 @@ for matchedServer := range matchedServers {
 ## TODO
 
 - Add marshal-able state to save and restore sessions
+- Make serverreaders threadsafe
+- Make multithreaded on processing serverreaders and servers
 
 ## Dependencies
 
