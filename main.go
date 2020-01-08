@@ -29,7 +29,7 @@ const (
 )
 
 // ServerReader Source of servers, should return EOF on each read after EOF
-// TODO: Convention on what to do with error on creation of server
+// TODO: If an error is returned in the creation of the server, convention is you return a nil server and no error.
 type ServerReader interface {
 	ReadServer() (genericenricher.Server, error)
 	Close() error // Close server reader

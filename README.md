@@ -1,5 +1,8 @@
 # Serverpatdown
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/vertoforce/serverpatdown)](https://goreportcard.com/report/github.com/vertoforce/serverpatdown)
+[![Documentation](https://godoc.org/github.com/vertoforce/serverpatdown?status.svg)](https://godoc.org/github.com/vertoforce/serverpatdown)
+
 This package takes a set of servers (or server sources) and searches the _data_ on the servers against a set of regex rules.
 Note that unless you call `SetServerDataLimit` this will read **all data** on each server.
 
